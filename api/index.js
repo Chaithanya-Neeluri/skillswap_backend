@@ -1,11 +1,10 @@
-// api/index.js
 import express from "express";
 import serverless from "serverless-http";
 import mongoose from "mongoose";
 import cors from "cors";
 
 // --------------------
-// ✅ Safe DB Connect (no top-level await)
+// ✅ Safe DB Connect (Your code is good!)
 // --------------------
 mongoose.set("strictQuery", true);
 mongoose.set("bufferCommands", false);
@@ -43,8 +42,18 @@ const app = express();
 app.use(express.json());
 app.use(cors({ origin: "*" }));
 
-// ✅ Middleware to ensure DB for each request (safe + fast)
-app.use(async (req, res, next) => {
+// --------------------
+// ❌ REMOVED
+// --------------------
+// DO NOT use global DB connection middleware.
+// This blocks simple routes and causes Vercel timeouts.
+// app.use(async (req, res, next) => { ... });
+
+// --------------------
+// ✨ NEW: DB Connection Middleware
+// --------------------
+// We will apply this middleware ONLY to routes that need the database
+const ensureDbConnection = async (req, res, next) => {
   try {
     await connectDB();
     next();
@@ -52,14 +61,16 @@ app.use(async (req, res, next) => {
     console.error("DB connect failed:", err.message);
     res.status(500).json({ error: "Database connection failed" });
   }
-});
+};
 
-// ✅ Test root route
-app.get("/", async (req, res) => {
+// --------------------
+// ✅ Public Routes (No DB required)
+// --------------------
+// These routes respond instantly, making Vercel deployment checks pass.
+app.get("/", (req, res) => {
   res.status(200).send("🚀 SkillSwap API running perfectly on Vercel!");
 });
 
-// ✅ Health check
 app.get("/api/health", (req, res) => {
   const states = ["disconnected", "connected", "connecting", "disconnecting"];
   res.json({
@@ -69,16 +80,19 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// ✅ Import other routes (after DB ready)
+// --------------------
+// ✅ API Routes (DB connection IS required)
+// --------------------
 import userRoutes from "../auth/userRoutes.js";
 import profileRoutes from "../profile/profileRoutes.js";
 import skillRoutes from "../skill/skillRoutes.js";
 import searchRoutes from "../searchForTutor/search.js";
 
-app.use("/api/users", userRoutes);
-app.use("/api/profile", profileRoutes);
-app.use("/api/skill", skillRoutes);
-app.use("/api/search", searchRoutes);
+// Apply the 'ensureDbConnection' middleware to all API routes
+app.use("/api/users", ensureDbConnection, userRoutes);
+app.use("/api/profile", ensureDbConnection, profileRoutes);
+app.use("/api/skill", ensureDbConnection, skillRoutes);
+app.use("/api/search", ensureDbConnection, searchRoutes);
 
 // ✅ Error handler
 app.use((err, req, res, next) => {
