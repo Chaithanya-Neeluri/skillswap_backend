@@ -30,8 +30,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/skill", skillRoutes);
 app.use("/api/search", searchRoutes);
-app.use("/api/chat", chatRoutes);
-app.use("/api/video", videoRoutes); 
+
 
 
 app.get("/", (req, res) => {
