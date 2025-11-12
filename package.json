@@ -1,0 +1,28 @@
+{
+  "name": "skillswap_backend",
+  "version": "1.0.0",
+  "description": "SkillSwap backend running as serverless on Vercel (Express + MongoDB + JWT)",
+  "main": "api/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "vercel dev",
+    "dev": "nodemon api/index.js"
+  },
+  "keywords": ["express", "vercel", "serverless", "mongodb", "skillswap"],
+  "author": "Chaithanya",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.19.2",
+    "openai": "^6.7.0",
+    "serverless-http": "^3.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
