@@ -2,11 +2,11 @@
   "name": "skillswap_backend",
   "version": "1.0.0",
   "description": "SkillSwap backend running as serverless on Vercel (Express + MongoDB + JWT)",
-  "main": "api/index.js",
+  "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "vercel dev",
-    "dev": "nodemon api/index.js"
+    "start": "node index",
+    "dev": "nodemon index.js"
   },
   "keywords": ["express", "vercel", "serverless", "mongodb", "skillswap"],
   "author": "Chaithanya",
