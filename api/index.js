@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 
 // --------------------
-// ✅ Mongoose Setup
+// ✅ Safe DB Connect (no top-level await)
 // --------------------
 mongoose.set("strictQuery", true);
 mongoose.set("bufferCommands", false);
@@ -19,7 +19,7 @@ async function connectDB() {
   if (cached.conn) return cached.conn;
   if (!cached.promise) {
     const uri = process.env.MONGO_URI;
-    if (!uri) throw new Error("❌ MONGO_URI missing in environment");
+    if (!uri) throw new Error("❌ MONGO_URI missing");
     cached.promise = mongoose
       .connect(uri, { dbName: "skillswap" })
       .then((m) => {
@@ -27,7 +27,7 @@ async function connectDB() {
         return m;
       })
       .catch((err) => {
-        console.error("❌ Mongo connection failed:", err.message);
+        console.error("❌ Mongo connection error:", err.message);
         cached.promise = null;
         throw err;
       });
@@ -37,33 +37,39 @@ async function connectDB() {
 }
 
 // --------------------
-// ✅ Express Setup
+// ✅ Express App Setup
 // --------------------
 const app = express();
 app.use(express.json());
 app.use(cors({ origin: "*" }));
 
-// Run DB connect once at cold start (not inside every request)
-await connectDB().catch((e) => console.error("Startup DB connect error:", e));
+// ✅ Middleware to ensure DB for each request (safe + fast)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("DB connect failed:", err.message);
+    res.status(500).json({ error: "Database connection failed" });
+  }
+});
 
-// --------------------
-// ✅ Routes
-// --------------------
-app.get("/", (req, res) => {
+// ✅ Test root route
+app.get("/", async (req, res) => {
   res.status(200).send("🚀 SkillSwap API running perfectly on Vercel!");
 });
 
+// ✅ Health check
 app.get("/api/health", (req, res) => {
-  const state = mongoose.connection.readyState;
   const states = ["disconnected", "connected", "connecting", "disconnecting"];
   res.json({
-    ok: state === 1,
-    state: states[state],
+    ok: mongoose.connection.readyState === 1,
+    mongo: states[mongoose.connection.readyState],
     time: new Date().toISOString(),
   });
 });
 
-// Import routes *after* connection is ready
+// ✅ Import other routes (after DB ready)
 import userRoutes from "../auth/userRoutes.js";
 import profileRoutes from "../profile/profileRoutes.js";
 import skillRoutes from "../skill/skillRoutes.js";
@@ -74,15 +80,11 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/skill", skillRoutes);
 app.use("/api/search", searchRoutes);
 
-// --------------------
-// ✅ Global Error Handler
-// --------------------
+// ✅ Error handler
 app.use((err, req, res, next) => {
-  console.error("💥 Unhandled error:", err);
-  res.status(500).json({ error: "Internal Server Error", message: err?.message });
+  console.error("💥 Error:", err);
+  res.status(500).json({ error: err.message || "Server error" });
 });
 
-// --------------------
 // ✅ Export for Vercel
-// --------------------
 export default serverless(app);
